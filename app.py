@@ -8,7 +8,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support.ui import Select
-
+from parse_csv import parseData
 
 def saveCookies(driver):
     pickle.dump(driver.get_cookies() , open("cookies.pkl", "wb"))
@@ -18,10 +18,98 @@ def addCookies(driver):
     for cookie in cookies:
         driver.add_cookie(cookie)
 
-# User Id : ctl00_ContentPlaceHolder1_txtUserID
-# Password : ctl00_ContentPlaceHolder1_txtPassword
-# Submit Button: ctl00_ContentPlaceHolder1_btnSubmit
-# Starting Url:  https://traceability.apeda.gov.in
+
+def enterData(data, driver):
+
+    for registrationNumber in data:
+
+        farmerSearchElement = driver.find_element_by_id("ctl00_ContentPlaceHolder1_txtFarmerSearch")
+        farmerSearchElement.send_keys(registrationNumber)
+
+        farmerSearchAction = driver.find_element_by_id("ctl00_ContentPlaceHolder1_btnFarmerSearch")
+
+        resultsTable = driver.find_element_by_id("ctl00_ContentPlaceHolder1_gvfarmerDetails")
+        farmerSearchAction.click()
+        wait.until(EC.staleness_of(resultsTable))
+
+        viewFarmer = driver.find_element_by_id("ctl00_ContentPlaceHolder1_gvfarmerDetails_ctl02_lnkAddfarm")
+        viewFarmer.send_keys(Keys.RETURN)
+
+        # edit the farmer details
+        addEditElement = driver.find_element_by_id("ctl00_ContentPlaceHolder1_GVFarmEntry_ctl02_imgbtnNewAdd")
+        addEditElement.send_keys(Keys.RETURN)
+
+        products = data[registrationNumber]
+
+        """
+            "cropSeason" : cropSeason,
+            "cropHarvest" : cropHarvest
+        """
+
+        for product in products:
+
+            productCode = product["productCode"]
+
+            productDetails = driver.find_element_by_id("ctl00_ContentPlaceHolder1_txtSearchValue")
+            productDetails.send_keys(productCode)
+            productDetails.send_keys(Keys.RETURN)
+
+            driver.find_element_by_id("ctl00_ContentPlaceHolder1_Grdview_ctl02_lnkView").click()
+
+            driver.implicitly_wait(10)
+
+            cropTypeData = data["cropType"]
+            cropVarietyData = data["cropVariety"]
+            cropAreaData = data["cropArea"]
+            cropSeasonData = data["cropSeason"]
+            cropHarvestData = data["cropHarvest"]
+            expectedYieldData = data["expectedYield"]
+
+            # Crop Type
+            cropType = Select(driver.find_element_by_id('ctl00_ContentPlaceHolder1_DDLCropType'))
+            cropType.select_by_value(cropTypeData)
+
+            # Crop Variety
+            cropVariety = driver.find_element_by_id("ctl00_ContentPlaceHolder1_txtVariety")
+            cropVariety.send_keys(cropVarietyData)
+
+            # Crop Area
+            cropArea = driver.find_element_by_id("ctl00_ContentPlaceHolder1_txtTotalArea")
+            cropArea.send_keys(cropAreaData)
+
+            # Season
+            season = driver.find_element_by_xpath("//label[normalize-space()={}]/preceding-sibling::input".format(cropSeasonData))
+            season.click()
+
+            # Estimated Quantity
+            try:
+                estimatedQuantity = driver.find_element_by_id("ctl00_ContentPlaceHolder1_txtQuantity")
+                estimatedQuantity.click()
+                estimatedQuantity.clear()
+                estimatedQuantity.send_keys(expectedYieldData)
+
+                estimatedQuantity = driver.find_element_by_id("ctl00_ContentPlaceHolder1_txtQuantity")
+                estimatedQuantity.click()
+                estimatedQuantity.clear()
+                estimatedQuantity.send_keys(expectedYieldData)
+            except:
+                estimatedQuantity = driver.find_element_by_id("ctl00_ContentPlaceHolder1_txtQuantity")
+                estimatedQuantity.click()
+                estimatedQuantity.clear()
+                estimatedQuantity.send_keys(expectedYieldData)
+
+            # Harvesting Technique
+            try:
+                harvestingTechnique = Select(driver.find_element_by_id('ctl00_ContentPlaceHolder1_DDLHarvestingTechnique'))
+                harvestingTechnique.select_by_value(cropHarvestData)
+                harvestingTechnique = Select(driver.find_element_by_id('ctl00_ContentPlaceHolder1_DDLHarvestingTechnique'))
+                harvestingTechnique.select_by_value(cropHarvestData)
+            except:
+                harvestingTechnique = Select(driver.find_element_by_id('ctl00_ContentPlaceHolder1_DDLHarvestingTechnique'))
+                harvestingTechnique.select_by_value(cropHarvestData)
+
+            driver.find_element_by_id("ctl00_ContentPlaceHolder1_btnSave").click()
+
 
 
 env_path = Path('.') / '.env'
@@ -65,83 +153,7 @@ driver.implicitly_wait(10)
 
 driver.switch_to.frame(driver.find_element_by_id("ctl00_ContentPlaceHolder1_ifrmID"))
 
-farmerSearchElement = driver.find_element_by_id("ctl00_ContentPlaceHolder1_txtFarmerSearch")
-farmerSearchElement.send_keys("TN2704001157")
-
-farmerSearchAction = driver.find_element_by_id("ctl00_ContentPlaceHolder1_btnFarmerSearch")
-
-resultsTable = driver.find_element_by_id("ctl00_ContentPlaceHolder1_gvfarmerDetails")
-farmerSearchAction.click()
-wait.until(EC.staleness_of(resultsTable))
-
-viewFarmer = driver.find_element_by_id("ctl00_ContentPlaceHolder1_gvfarmerDetails_ctl02_lnkAddfarm")
-viewFarmer.send_keys(Keys.RETURN)
-
-# edit the farmer details
-addEditElement = driver.find_element_by_id("ctl00_ContentPlaceHolder1_GVFarmEntry_ctl02_imgbtnNewAdd")
-addEditElement.send_keys(Keys.RETURN)
-
-productDetails = driver.find_element_by_id("ctl00_ContentPlaceHolder1_txtSearchValue")
-productDetails.send_keys("709601002")
-productDetails.send_keys(Keys.RETURN)
-
-driver.find_element_by_id("ctl00_ContentPlaceHolder1_Grdview_ctl02_lnkView").click()
-
-driver.implicitly_wait(10)
-
-# Crop Type
-cropType = Select(driver.find_element_by_id('ctl00_ContentPlaceHolder1_DDLCropType'))
-cropType.select_by_visible_text("Main")
-
-# Crop Variety
-cropVariety = driver.find_element_by_id("ctl00_ContentPlaceHolder1_txtVariety")
-cropVariety.send_keys("Local") 
-
-# Crop Area
-cropArea = driver.find_element_by_id("ctl00_ContentPlaceHolder1_txtTotalArea")
-cropArea.send_keys("1.2")
-
-# Season
-season = driver.find_element_by_xpath("//label[normalize-space()='Rabi']/preceding-sibling::input")
-season.click()
-
-# Estimated Quantity
-try:
-    estimatedQuantity = driver.find_element_by_id("ctl00_ContentPlaceHolder1_txtQuantity")
-    estimatedQuantity.click()
-    estimatedQuantity.clear()
-    estimatedQuantity.send_keys("10.9")
-
-    estimatedQuantity = driver.find_element_by_id("ctl00_ContentPlaceHolder1_txtQuantity")
-    estimatedQuantity.click()
-    estimatedQuantity.clear()
-    estimatedQuantity.send_keys("10.9")
-except:
-    estimatedQuantity = driver.find_element_by_id("ctl00_ContentPlaceHolder1_txtQuantity")
-    estimatedQuantity.click()
-    estimatedQuantity.clear()
-    estimatedQuantity.send_keys("10.9")
-
-# Harvesting Technique
-try:
-    harvestingTechnique = Select(driver.find_element_by_id('ctl00_ContentPlaceHolder1_DDLHarvestingTechnique'))
-    harvestingTechnique.select_by_visible_text("Single Harvest")
-    harvestingTechnique = Select(driver.find_element_by_id('ctl00_ContentPlaceHolder1_DDLHarvestingTechnique'))
-    harvestingTechnique.select_by_visible_text("Single Harvest")
-except:
-    harvestingTechnique = Select(driver.find_element_by_id('ctl00_ContentPlaceHolder1_DDLHarvestingTechnique'))
-    harvestingTechnique.select_by_visible_text("Single Harvest")
-
-driver.find_element_by_id("ctl00_ContentPlaceHolder1_btnSave").click()
-
-# ========== Details Page ===================================
-
-# Crop Type -> ctl00_ContentPlaceHolder1_DDLCropType
-# Crop Variety -> ctl00_ContentPlaceHolder1_txtVariety
-# Crop Area -> ctl00_ContentPlaceHolder1_txtTotalArea
-# Crop Season -> ctl00_ContentPlaceHolder1_DDLSeason
-# Estimated Quantity -> ctl00_ContentPlaceHolder1_txtQuantity
-# Harvest -> ctl00_ContentPlaceHolder1_DDLHarvestingTechnique 
-# Submit Button -> ctl00_ContentPlaceHolder1_btnSave
+data = parseData()
+# enterData(data, driver)
 
 driver.close()
